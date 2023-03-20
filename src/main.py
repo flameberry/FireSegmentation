@@ -1,12 +1,16 @@
 import sys
 import os
+
+import PIL.Image
 import numpy as np
 import pathlib
+import skimage
 
-import tensorflow as tf
-tf.compat.v1.disable_eager_execution()
+import pathlib
 
-sys.path.append('../vendor/Mask_RCNN')
+ROOT_DIR = pathlib.Path(__file__).parent.parent
+
+sys.path.append('../vendor/Mask_RCNN-TF2')
 
 from mrcnn.config import Config
 from mrcnn import model as modellib, utils
@@ -52,16 +56,15 @@ class FireDataset(utils.Dataset):
         # Add classes. We have only one class to add.
         self.add_class("fire", 1, "fire")
 
-        # Train or validation dataset?
         dataset_dir = os.path.join(dataset_dir, 'Image/Fire')
 
         image_indices = np.arange(0, 27460, 1)
-        train_img_indices, test_img_indices = split_train_test(image_indices, 0.3)
+        train_img_indices, test_img_indices = split_train_test(image_indices, 0.3, seed=42)
 
         img_list = os.listdir(dataset_dir)
 
         for index in (train_img_indices if is_train else test_img_indices):
-            image_name = img_list[index]
+            image_name = f'{img_list[index]}'
             print(image_name)
 
             image_path = os.path.join(dataset_dir, image_name)
@@ -73,7 +76,8 @@ class FireDataset(utils.Dataset):
                 image_id=image_name,  # use file name as a unique image id
                 path=image_path,
                 width=width,
-                height=height
+                height=height,
+                filename=image_name
             )
 
     def load_mask(self, image_id):
@@ -84,13 +88,26 @@ class FireDataset(utils.Dataset):
         class_ids: a 1D array of class IDs of the instance masks.
         """
         info = self.image_info[image_id]
-        mask = np.zeros([info["height"], info["width"]], dtype=np.uint8)
-        print(mask)
+
+        # If not a fire dataset image, delegate to parent class.
+        image_info = self.image_info[image_id]
+        if image_info["source"] != "fire":
+            return super(self.__class__, self).load_mask(image_id)
+
+        # img = Image.open(f'{str(ROOT_DIR)}/dataset/Segmentation_Mask/Fire/{info["filename"]}')
+        # mask = np.array(img)
+        # mask.reshape(info["width"], info["height"], 1)
+
+        image_path = f'{str(ROOT_DIR)}/dataset/Segmentation_Mask/Fire/{info["filename"]}'
+        mask = skimage.io.imread(image_path, as_gray=True).astype(bool)
+        print(image_path)
+
+        # Return mask, and array of class IDs of each instance. Since we have
+        # one class ID only, we return an array of 1s
+        return mask.astype(bool), np.ones([mask.shape[-1]], dtype=np.int32)
 
 
 if __name__ == '__main__':
-    print("Hello")
-
     ROOT_DIR = pathlib.Path(__file__).parent.parent
 
     train_dataset = FireDataset()
@@ -109,10 +126,10 @@ if __name__ == '__main__':
     model = modellib.MaskRCNN(mode='training', model_dir='../log', config=fire_config)
     print(model.keras_model.summary())
 
-    # print("Training network heads")
-    # model.train(
-    #     train_dataset, test_dataset,
-    #     learning_rate=fire_config.LEARNING_RATE,
-    #     epochs=30,
-    #     layers='heads'
-    # )
+    print("Training network heads")
+    model.train(
+        train_dataset, test_dataset,
+        learning_rate=fire_config.LEARNING_RATE,
+        epochs=30,
+        layers='heads'
+    )
