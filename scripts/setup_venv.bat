@@ -9,7 +9,7 @@ if not exist venv\ (
 )
 call %DIRECTORY%\Scripts\activate.bat
 
-pip install numpy tensorflow pillow scikit-image
+pip install numpy tensorflow pillow scikit-image opencv-python
 
 popd
 PAUSE
