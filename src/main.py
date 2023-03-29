@@ -1,7 +1,6 @@
 import sys
 import os
 
-import PIL.Image
 import numpy as np
 import pathlib
 import skimage
@@ -10,7 +9,7 @@ import pathlib
 
 ROOT_DIR = pathlib.Path(__file__).parent.parent
 
-sys.path.append('../vendor/Mask_RCNN-TF2')
+sys.path.append(str(ROOT_DIR / 'vendor/Mask_RCNN-TF2'))
 
 from mrcnn.config import Config
 from mrcnn import model as modellib, utils
