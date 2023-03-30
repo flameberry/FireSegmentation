@@ -80,7 +80,8 @@ class FireDataset(utils.Dataset):
             )
 
     def load_mask(self, image_id):
-        """Generate instance masks for an image.
+        """
+        Generate instance masks for an image.
         Returns:
         masks: A bool array of shape [height, width, instance count] with
         one mask per instance.
@@ -93,13 +94,14 @@ class FireDataset(utils.Dataset):
         if image_info["source"] != "fire":
             return super(self.__class__, self).load_mask(image_id)
 
-        # img = Image.open(f'{str(ROOT_DIR)}/dataset/Segmentation_Mask/Fire/{info["filename"]}')
-        # mask = np.array(img)
+        image_path = f'{str(ROOT_DIR)}/dataset/Segmentation_Mask/Fire/{info["filename"]}'
+
+        mask = Image.open(image_path).resize((256, 256))
+        mask = np.array(mask)
         # mask.reshape(info["width"], info["height"], 1)
 
-        image_path = f'{str(ROOT_DIR)}/dataset/Segmentation_Mask/Fire/{info["filename"]}'
-        mask = skimage.io.imread(image_path, as_gray=True).astype(bool)
-        print(image_path)
+        # mask = skimage.io.imread(image_path, as_gray=True).astype(bool)
+        # print(image_path)
 
         # Return mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
@@ -107,8 +109,6 @@ class FireDataset(utils.Dataset):
 
 
 if __name__ == '__main__':
-    ROOT_DIR = pathlib.Path(__file__).parent.parent
-
     train_dataset = FireDataset()
     train_dataset.load_fire(dataset_dir=f'{str(ROOT_DIR)}/dataset', is_train=True)
     train_dataset.prepare()
